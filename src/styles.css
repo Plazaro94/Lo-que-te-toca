@@ -1,0 +1,4 @@
+html { background: #F6F2EC; }
+body { margin: 0; min-width: 320px; }
+button, input, select { font: inherit; }
+* { box-sizing: border-box; }
