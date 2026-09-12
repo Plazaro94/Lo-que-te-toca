@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { track } from "@vercel/analytics";
 
 /* ═══════════════════════════════════════════════════════════════
    LO QUE TE TOCA · prototipo v3 · versión web autónoma
@@ -756,7 +757,7 @@ export default function LoQueTeToca() {
 
         <label style={{ display: "block", fontSize: 14.5, color: C.suave, marginBottom: 8 }}>¿Cómo te llamo?</label>
         <input style={inputBase} value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" onKeyDown={(e) => e.key === "Enter" && setPantalla("preguntas")} />
-        <button style={{ ...btn(true), marginTop: 16, width: "100%" }} onClick={() => setPantalla("preguntas")}>Empezar</button>
+        <button style={{ ...btn(true), marginTop: 16, width: "100%" }} onClick={() => { track("empezar_test"); setPantalla("preguntas"); }}>Empezar</button>
         <p style={{ fontSize: 12.5, color: C.suave, marginTop: 20, marginBottom: 0 }}>Prototipo con datos de ejemplo. Las cifras son orientativas y no sustituyen a lo que diga la convocatoria oficial.</p>
       </div>
     </div>
@@ -769,7 +770,7 @@ export default function LoQueTeToca() {
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setPantalla("preguntas")} style={{ ...(pantalla === "preguntas" ? btn(true) : btnSuave), padding: "9px 16px", fontSize: 14.5 }}>Preguntas</button>
             <button onClick={() => setPantalla("vida")} style={{ ...(pantalla === "vida" ? btn(true) : btnSuave), padding: "9px 16px", fontSize: 14.5 }}>Mi vida{eventos.length ? ` · ${eventos.length}` : ""}</button>
-            <button onClick={() => setPantalla("resultados")} style={{ ...(pantalla === "resultados" ? btn(true) : btnSuave), padding: "9px 16px", fontSize: 14.5 }}>Lo mío{tuyas.length ? ` · ${tuyas.length}` : ""}</button>
+            <button onClick={() => { track("ver_resultados", { tuyas: tuyas.length, mirar: mirar.length }); setPantalla("resultados"); }} style={{ ...(pantalla === "resultados" ? btn(true) : btnSuave), padding: "9px 16px", fontSize: 14.5 }}>Lo mío{tuyas.length ? ` · ${tuyas.length}` : ""}</button>
           </div>
           {total > 0 && <span style={{ fontSize: 14, color: C.miel }}>Llevas <strong style={{ fontWeight: 600 }}>{fmtE(total)}</strong> al año encontrados</span>}
         </header>
@@ -890,6 +891,7 @@ export default function LoQueTeToca() {
                   <input type="email" style={{ ...inputBase, marginBottom: 12 }} value={emailGestion} onChange={(e) => setEmailGestion(e.target.value)} placeholder="tucorreo@ejemplo.com" />
                   <a
                     href={`mailto:polazarock@gmail.com?subject=${encodeURIComponent("Quiero que me ayudéis a tramitar mis ayudas")}&body=${encodeURIComponent(`Hola,\n\nSoy ${nombre || "un usuario del test"} y quiero que me ayudéis a tramitar lo siguiente:\n\n${[...tuyas, ...mirar].map((x) => `- ${x.a}`).join("\n")}\n\nMi email de contacto: ${emailGestion || "(no indicado)"}\n`)}`}
+                    onClick={() => track("click_quiero_ayuda", { tuyas: tuyas.length, mirar: mirar.length })}
                     style={{ ...btn(true), textDecoration: "none", display: "inline-block" }}
                   >
                     Quiero que me ayudéis
