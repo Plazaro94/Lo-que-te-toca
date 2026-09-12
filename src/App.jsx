@@ -458,6 +458,15 @@ const D = [
       si("Entras por ingresos. Se pide a la empresa del agua, no al ayuntamiento") },
 ];
 
+const FAMILIAS = [
+  ["Vivienda y alquiler", ["alquilerded", "alquilerjoven", "alquilergeneral", "vpo", "rehabilitacion", "viviendaded", "arrendador", "eficiencia", "autonAlquiler"]],
+  ["Familia e hijos", ["cai", "nacimientoSS", "maternidad", "guarderiaded", "fnded", "monoded", "hijodiscap", "autonNacimiento", "autonGuarderia", "natalidadRural", "escuela03"]],
+  ["Empleo y autónomos", ["paro", "subsidio", "subsidio52", "ceseact", "tarifaplana"]],
+  ["Estudios y becas", ["becamec", "becanee", "comedor", "libros", "autonEstudios"]],
+  ["Salud y dependencia", ["dependenciaPr", "cuidador", "discapded", "pnc", "autonMayores"]],
+  ["Energía y hogar", ["bonoluz", "bonotermico", "bonotelefono", "agua", "ibiSolar", "ibiFn", "tasas", "moves", "ivtm"]],
+].map(([nombre, ids]) => [nombre, ids.length]);
+
 function derivar(r) {
   const hijos = Array.isArray(r.hijos) ? r.hijos.filter(Boolean) : [];
   const edades = hijos.map((h) => edadDe(h)).filter((e) => e != null);
@@ -553,6 +562,7 @@ export default function LoQueTeToca() {
   const [listo, setListo] = useState(false);
   const [eventos, setEventos] = useState([]);
   const [nuevoEvento, setNuevoEvento] = useState({ tipo: "nacimiento-hijo", fecha: "", nota: "" });
+  const [emailGestion, setEmailGestion] = useState("");
 
   useEffect(() => {
     try {
@@ -584,6 +594,10 @@ export default function LoQueTeToca() {
   const urgentes = [...tuyas, ...mirar].filter((x) => x.plazoNota);
   const avisos = [...tuyas, ...mirar].filter((x) => x.aviso);
   const contestadas = PREGUNTAS.filter((p) => contestada(r, p.id)).length;
+  const totalAplicables = useMemo(() => {
+    const f = derivar(r);
+    return PREGUNTAS.filter((p) => !p.cuando || p.cuando(f)).length;
+  }, [r]);
   const saludo = nombre ? nombre.trim().split(/\s+/)[0] : null;
 
   const responder = (v) => {
@@ -722,10 +736,24 @@ export default function LoQueTeToca() {
 
   if (pantalla === "bienvenida") return (
     <div style={{ background: C.fondo, color: C.tinta, font: `16px/1.6 ${sans}`, minHeight: "100vh", display: "flex", alignItems: "center", padding: "40px 20px" }}>
-      <div style={{ maxWidth: 460, margin: "0 auto" }}>
+      <div style={{ maxWidth: 520, margin: "0 auto" }}>
         <h1 style={{ font: `500 34px/1.2 ${serif}`, margin: "0 0 18px" }}>Hay dinero público a tu nombre que nadie te va a reclamar.</h1>
+
+        <div style={{ display: "flex", gap: 24, flexWrap: "wrap", margin: "0 0 22px", padding: "16px 0", borderTop: `1px solid ${C.borde}`, borderBottom: `1px solid ${C.borde}` }}>
+          <div><div style={{ font: `500 22px ${serif}`, color: C.ciruela }}>{D.length}</div><div style={{ fontSize: 12.5, color: C.suave }}>ayudas, prestaciones y deducciones que reviso</div></div>
+          <div><div style={{ font: `500 22px ${serif}`, color: C.ciruela }}>{CCAA.length}</div><div style={{ fontSize: 12.5, color: C.suave }}>comunidades autónomas cubiertas</div></div>
+          <div><div style={{ font: `500 22px ${serif}`, color: C.ciruela }}>0 €</div><div style={{ fontSize: 12.5, color: C.suave }}>cuesta comprobarlo, siempre</div></div>
+        </div>
+
         <p style={{ margin: "0 0 14px", color: C.tinta }}>Te voy a preguntar por tu vida: dónde vives, con quién, de qué trabajas, qué te ha pasado últimamente. Con cada respuesta voy tachando lo que no te toca y encontrando lo que sí.</p>
-        <p style={{ margin: "0 0 26px", color: C.suave, fontSize: 15 }}>Puedes parar cuando quieras, saltarte lo que no quieras contar y cambiar cualquier respuesta después. Nada de esto sale de tu móvil.</p>
+        <p style={{ margin: "0 0 18px", color: C.suave, fontSize: 15 }}>Puedes parar cuando quieras, saltarte lo que no quieras contar y cambiar cualquier respuesta después. Nada de esto sale de tu móvil.</p>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "0 0 26px" }}>
+          {FAMILIAS.map(([familia]) => (
+            <span key={familia} style={{ fontSize: 13, color: C.ciruela, background: "#F5EEF2", border: `1px solid ${C.borde}`, padding: "5px 12px", borderRadius: 20 }}>{familia}</span>
+          ))}
+        </div>
+
         <label style={{ display: "block", fontSize: 14.5, color: C.suave, marginBottom: 8 }}>¿Cómo te llamo?</label>
         <input style={inputBase} value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tu nombre" onKeyDown={(e) => e.key === "Enter" && setPantalla("preguntas")} />
         <button style={{ ...btn(true), marginTop: 16, width: "100%" }} onClick={() => setPantalla("preguntas")}>Empezar</button>
@@ -748,6 +776,7 @@ export default function LoQueTeToca() {
 
         {pantalla === "preguntas" && (
           <div>
+            {pregunta && <p style={{ fontSize: 12.5, color: C.suave, margin: "0 0 10px" }}>Pregunta {contestadas + 1} de ~{Math.max(totalAplicables, contestadas + 1)}</p>}
             {ultimo && <p style={{ fontSize: 14.5, color: C.ciruela, background: "#F5EEF2", borderRadius: 10, padding: "10px 14px", margin: "0 0 18px" }}>
               {ultimo.gan > 0 ? `Con eso he encontrado ${ultimo.gan} cosa${ultimo.gan === 1 ? "" : "s"} más para ti` : "Con eso he descartado cosas que no venían al caso"}{ultimo.perd > 0 ? ` y he tachado ${ultimo.perd}.` : "."}
             </p>}
@@ -853,6 +882,31 @@ export default function LoQueTeToca() {
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14, font: `500 19px ${serif}` }}><span>En total</span><span style={{ color: C.miel, fontVariantNumeric: "tabular-nums" }}>{fmtE(totalRetro)}</span></div>
                   <p style={{ fontSize: 12.5, color: C.suave, marginTop: 12, marginBottom: 0 }}>Es el techo, no lo que vas a cobrar seguro. Cada año se revisa por separado.</p>
                 </div>}
+
+                <div style={{ background: C.tarjeta, border: `2px solid ${C.ciruela}`, borderRadius: 16, padding: "22px 22px", marginBottom: 24 }}>
+                  <h2 style={{ font: `500 20px ${serif}`, margin: "0 0 8px" }}>¿Quieres que te lo consigamos nosotros?</h2>
+                  <p style={{ fontSize: 15, margin: "0 0 14px" }}>Comprobarlo es gratis y seguirá siéndolo siempre. Si además quieres que nos encarguemos del papeleo, no pagas nada por adelantado: <strong>solo cobramos algo si el dinero llega a tu cuenta</strong>. Si te lo deniegan, no debes nada.</p>
+                  <label style={{ display: "block", fontSize: 14, color: C.suave, marginBottom: 6 }}>Tu email, para contactarte</label>
+                  <input type="email" style={{ ...inputBase, marginBottom: 12 }} value={emailGestion} onChange={(e) => setEmailGestion(e.target.value)} placeholder="tucorreo@ejemplo.com" />
+                  <a
+                    href={`mailto:polazarock@gmail.com?subject=${encodeURIComponent("Quiero que me ayudéis a tramitar mis ayudas")}&body=${encodeURIComponent(`Hola,\n\nSoy ${nombre || "un usuario del test"} y quiero que me ayudéis a tramitar lo siguiente:\n\n${[...tuyas, ...mirar].map((x) => `- ${x.a}`).join("\n")}\n\nMi email de contacto: ${emailGestion || "(no indicado)"}\n`)}`}
+                    style={{ ...btn(true), textDecoration: "none", display: "inline-block" }}
+                  >
+                    Quiero que me ayudéis
+                  </a>
+                  <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${C.hondo}` }}>
+                    {[
+                      ["¿De verdad es gratis comprobarlo?", "Sí, siempre. El test no tiene coste ni ahora ni si vuelves más adelante."],
+                      ["¿Cuánto cobráis si me ayudáis?", "Todavía estamos definiendo el porcentaje exacto, pero el principio no cambia: si no te conceden la ayuda, no pagas nada."],
+                      ["¿Qué hacéis con mis datos?", "Nada sale de tu dispositivo mientras solo haces el test. Si nos pides ayuda, usamos tu email únicamente para contactarte sobre esto."],
+                    ].map(([q, a]) => (
+                      <div key={q} style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 14.5, fontWeight: 600 }}>{q}</div>
+                        <div style={{ fontSize: 14, color: C.suave }}>{a}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 {sinsaber.length > 0 && <p style={{ fontSize: 15, background: "#F5EEF2", color: C.ciruela, borderRadius: 10, padding: "12px 15px" }}>Me faltan datos para decidir sobre {sinsaber.length} cosas más.{" "}<button onClick={() => setPantalla("preguntas")} style={{ ...link, color: C.ciruela }}>Seguir contestando</button></p>}
 
