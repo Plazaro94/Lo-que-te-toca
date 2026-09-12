@@ -85,6 +85,8 @@ const si = (motivo, extra = {}) => ({ estado: "corresponde", motivo, ...extra })
 const quiza = (motivo, extra = {}) => ({ estado: "posible", motivo, ...extra });
 const no = (motivo) => ({ estado: "descartado", motivo });
 const umbral = (f, mult, incr = 0.3) => IPREM * mult * (1 + incr * (f.miembros - 1));
+// 1,5×IPREM base + 0,3×IPREM por cada adulto adicional + 0,5×IPREM por cada menor (regla oficial del bono social eléctrico)
+const umbralBonoSocial = (f) => IPREM * 1.5 + IPREM * 0.3 * Math.max((f.adultos || 1) - 1, 0) + IPREM * 0.5 * (f.hijosMenores18 || 0);
 
 const D = [
   { id: "imv", a: "Una ayuda mensual si el dinero no llega", n: "Ingreso Mínimo Vital", amb: "Estado", cat: "Prestación", org: "Seguridad Social",
@@ -258,14 +260,14 @@ const D = [
     docs: ["Formulario firmado por todos los mayores de 14 años de la casa", "Empadronamiento de todos", "Última factura", "DNI de todos"],
     ev: (f) => !f.titularLuz ? no("El contrato tiene que estar a tu nombre") :
       f.nHijos >= 3 ? si("Siendo familia numerosa te lo dan sin mirar lo que ganáis", { it: "Un descuento fijo en cada factura" }) :
-        f.ingresos > umbral(f, 2, 0.25) ? no(`Con lo que entra en casa te quedas fuera. El corte anda por los ${fmtE(umbral(f, 2, 0.25))}`) :
+        f.ingresos > umbralBonoSocial(f) ? no(`Con lo que entra en casa te quedas fuera. El corte anda por los ${fmtE(umbralBonoSocial(f))}`) :
           si("Por ingresos entras. Es de las más fáciles de pedir y de las que más se olvidan", { it: "Un descuento fijo en cada factura" }) },
 
   { id: "bonotermico", a: "Un pago al año para la calefacción", n: "Bono social térmico", amb: "Estado", cat: "Descuento", org: "Tu comunidad",
     req: ["ingresos", "adultos", "hijos", "titularLuz"], link: "https://www.bonosocial.gob.es",
     docs: ["Ninguno: te lo dan solo si ya tienes el bono social de la luz"],
     ev: (f) => !f.titularLuz ? no("Va pegado al titular de la luz") :
-      f.ingresos > umbral(f, 2, 0.25) && f.nHijos < 3 ? no("Va pegado a tener antes el bono social eléctrico") :
+      f.ingresos > umbralBonoSocial(f) && f.nHijos < 3 ? no("Va pegado a tener antes el bono social eléctrico") :
         si("Este llega solo si tienes el de la luz. No hay que pedir nada", { it: "Un ingreso una vez al año" }) },
 
   { id: "bonotelefono", a: "Internet más barato", n: "Bono social de telecomunicaciones", amb: "Estado", cat: "Descuento", org: "Tu operadora",
