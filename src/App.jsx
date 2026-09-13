@@ -111,7 +111,7 @@ const D = [
         quiza("Depende de cuánto habías cotizado justo antes del parto") },
 
   { id: "riesgo", a: "Baja pagada si tu trabajo es un riesgo para el embarazo", n: "Prestación por riesgo durante el embarazo", amb: "Estado", cat: "Prestación", org: "Seguridad Social o mutua",
-    req: ["embarazo", "situacion"], link: "https://www.seg-social.es",
+    req: ["nacimiento", "embarazo", "situacion"], link: "https://www.seg-social.es",
     docs: ["Informe de tu médico", "Certificado de la empresa describiendo tu puesto"],
     ev: (f) => !f.embarazo ? no("No hay embarazo en marcha") :
       ["asalariado", "autonomo"].includes(f.situacion) ? quiza("Si quien está embarazada tiene un puesto que no se puede adaptar, puede irse a casa cobrando el 100%") :
