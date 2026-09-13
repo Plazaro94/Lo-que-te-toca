@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/((?!assets/|favicon\\.svg|apple-touch-icon\\.png|og\\.png).*)", "destination": "/" }
+  ]
+}

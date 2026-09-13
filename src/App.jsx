@@ -677,6 +677,8 @@ export default function LoQueTeToca() {
   const accionables = [...tuyas, ...mirar];
   const silenciosas = accionables.filter((x) => x.obt === "silenciosa" && !["solicitada", "concedida"].includes(gestion[x.id]));
   const yaTienes = accionables.filter((x) => ["solicitada", "concedida"].includes(gestion[x.id]));
+  // Preguntas que te saltaste y que dejan ayudas sin resolver: hay que poder recuperarlas.
+  const saltadasQueBloquean = saltadas.filter((id) => sinsaber.some((x) => x.faltan.includes(id)));
   const contestadas = PREGUNTAS.filter((p) => contestada(r, p.id)).length;
   const totalAplicables = useMemo(() => {
     const f = derivar(r);
@@ -930,6 +932,9 @@ export default function LoQueTeToca() {
             >
               Quiero que me ayudéis
             </a>
+            <p style={{ fontSize: 13.5, color: C.suave, margin: "10px 0 0" }}>
+              Si el botón no te abre el correo, escríbenos tú a <strong style={{ color: C.tinta, fontWeight: 600, userSelect: "all" }}>polazarock@gmail.com</strong>
+            </p>
           </div>
 
           <p style={{ fontSize: 12.5, color: C.suave, borderTop: `1px solid ${C.borde}`, paddingTop: 14, margin: 0 }}>
@@ -1130,6 +1135,9 @@ export default function LoQueTeToca() {
                   >
                     Quiero que me ayudéis
                   </a>
+                  <p style={{ fontSize: 13.5, color: C.suave, margin: "10px 0 0" }}>
+                    Si el botón no te abre el correo, escríbenos tú a <strong style={{ color: C.tinta, fontWeight: 600, userSelect: "all" }}>polazarock@gmail.com</strong>
+                  </p>
                   <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${C.hondo}` }}>
                     {[
                       ["¿De verdad es gratis comprobarlo?", "Sí, siempre. El test no tiene coste ni ahora ni si vuelves más adelante."],
@@ -1144,7 +1152,24 @@ export default function LoQueTeToca() {
                   </div>
                 </div>
 
-                {sinsaber.length > 0 && <p style={{ fontSize: 15, background: "#F5EEF2", color: C.ciruela, borderRadius: 10, padding: "12px 15px" }}>Me faltan datos para decidir sobre {sinsaber.length} cosas más.{" "}<button onClick={() => setPantalla("preguntas")} style={{ ...link, color: C.ciruela }}>Seguir contestando</button></p>}
+                {sinsaber.length > 0 && (
+                  <p style={{ fontSize: 15, background: "#F5EEF2", color: C.ciruela, borderRadius: 10, padding: "12px 15px" }}>
+                    Me faltan datos para decidir sobre {sinsaber.length} cosas más.{" "}
+                    {saltadasQueBloquean.length > 0 ? (
+                      <>
+                        Dependen de {saltadasQueBloquean.length === 1 ? "una pregunta que te saltaste" : `${saltadasQueBloquean.length} preguntas que te saltaste`}.{" "}
+                        <button
+                          onClick={() => { setSaltadas((s) => s.filter((id) => !saltadasQueBloquean.includes(id))); setPantalla("preguntas"); }}
+                          style={{ ...link, color: C.ciruela }}
+                        >
+                          Volver a preguntármelas
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={() => setPantalla("preguntas")} style={{ ...link, color: C.ciruela }}>Seguir contestando</button>
+                    )}
+                  </p>
+                )}
 
                 {fuera.length > 0 && <div style={{ marginTop: 22 }}>
                   <button onClick={() => setVerDesc((v) => !v)} style={{ ...link, color: C.suave, fontSize: 14.5 }}>{verDesc ? "Ocultar" : "Ver"} las {fuera.length} que he descartado, y por qué</button>
