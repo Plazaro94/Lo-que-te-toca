@@ -783,7 +783,7 @@ export default function LoQueTeToca() {
             </p>}
             {pregunta ? (
               <div style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 16, padding: "24px 22px" }}>
-                <h2 style={{ font: `500 23px/1.3 ${serif}`, margin: "0 0 8px" }}>{contestadas === 0 && saludo ? `${saludo}, ` : ""}{contestadas === 0 && saludo ? pregunta.texto.charAt(0).toLowerCase() + pregunta.texto.slice(1) : pregunta.texto}</h2>
+                <h2 style={{ font: `500 23px/1.3 ${serif}`, margin: "0 0 8px" }}>{contestadas === 0 && saludo ? `${saludo}, ` : ""}{contestadas === 0 && saludo ? pregunta.texto.replace(/^([¿¡]*)([A-ZÁÉÍÓÚÑ])/, (_, pre, letra) => pre + letra.toLowerCase()) : pregunta.texto}</h2>
                 {pregunta.ayuda ? <p style={{ fontSize: 15, color: C.suave, margin: "0 0 18px" }}>{pregunta.ayuda}</p> : <div style={{ height: 12 }} />}
                 {entrada()}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 20, paddingTop: 16, borderTop: `1px solid ${C.hondo}`, fontSize: 13.5, color: C.suave }}>
