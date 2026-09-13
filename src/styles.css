@@ -2,3 +2,9 @@ html { background: #F6F2EC; }
 body { margin: 0; min-width: 320px; }
 button, input, select { font: inherit; }
 * { box-sizing: border-box; }
+
+button:not(:disabled) { transition: transform 0.08s ease, box-shadow 0.15s ease, filter 0.15s ease; }
+button:not(:disabled):hover { transform: translateY(-1px); filter: brightness(1.03); }
+button:not(:disabled):active { transform: translateY(0); filter: brightness(0.98); }
+input, select { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+input:focus, select:focus { outline: none; border-color: #6E3D5B; box-shadow: 0 0 0 3px rgba(110,61,91,0.14); }

@@ -512,9 +512,10 @@ function siguiente(r, saltadas) {
   return s[0];
 }
 
+const sombra = "0 1px 2px rgba(42,32,40,0.04), 0 4px 14px rgba(42,32,40,0.06)";
 const inputBase = { width: "100%", padding: "13px 14px", border: `1px solid ${C.borde}`, borderRadius: 10, background: C.tarjeta, font: `16px ${sans}`, color: C.tinta, boxSizing: "border-box" };
-const btn = (on) => ({ padding: "13px 22px", border: "none", borderRadius: 10, background: on ? C.ciruela : C.hondo, color: on ? "#fff" : C.suave, font: `500 15.5px ${sans}`, cursor: on ? "pointer" : "default" });
-const btnSuave = { padding: "13px 22px", border: `1px solid ${C.borde}`, borderRadius: 10, background: C.tarjeta, color: C.tinta, font: `500 15.5px ${sans}`, cursor: "pointer" };
+const btn = (on) => ({ padding: "13px 22px", border: "none", borderRadius: 10, background: on ? C.ciruela : C.hondo, color: on ? "#fff" : C.suave, font: `500 15.5px ${sans}`, cursor: on ? "pointer" : "default", boxShadow: on ? "0 2px 8px rgba(110,61,91,0.28)" : "none" };
+const btnSuave = { padding: "13px 22px", border: `1px solid ${C.borde}`, borderRadius: 10, background: C.tarjeta, color: C.tinta, font: `500 15.5px ${sans}`, cursor: "pointer", boxShadow: sombra };
 const link = { border: "none", background: "none", padding: 0, textDecoration: "underline", cursor: "pointer", font: `inherit` };
 
 function Etiqueta({ estado }) {
@@ -638,6 +639,13 @@ export default function LoQueTeToca() {
   const entrada = () => {
     const p = pregunta;
     if (!p) return null;
+    if (p.tipo === "select" && p.opciones.length <= 7) return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+        {p.opciones.map(([v, t]) => (
+          <button key={v} style={{ ...btnSuave, textAlign: "left", padding: "13px 16px" }} onClick={() => responder(v)}>{t}</button>
+        ))}
+      </div>
+    );
     if (p.tipo === "select") return (<div>
       <select style={inputBase} value={borrador ?? ""} onChange={(e) => setBorrador(e.target.value)}>
         <option value="">Elige...</option>
@@ -683,7 +691,7 @@ export default function LoQueTeToca() {
 
   const Ficha = ({ x }) => (
     <article onClick={() => setAbierta(abierta === x.id ? null : x.id)}
-      style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 14, padding: "16px 18px", marginBottom: 12, cursor: "pointer" }}>
+      style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 14, boxShadow: sombra, padding: "16px 18px", marginBottom: 12, cursor: "pointer" }}>
       <div style={{ display: "flex", gap: 12, justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ font: `500 18px/1.3 ${serif}`, marginBottom: 4 }}>{x.a}</div>
@@ -777,12 +785,23 @@ export default function LoQueTeToca() {
 
         {pantalla === "preguntas" && (
           <div>
-            {pregunta && <p style={{ fontSize: 12.5, color: C.suave, margin: "0 0 10px" }}>Pregunta {contestadas + 1} de ~{Math.max(totalAplicables, contestadas + 1)}</p>}
+            {pregunta && (() => {
+              const totalBarra = Math.max(totalAplicables, contestadas + 1);
+              const pct = Math.min(100, Math.round((contestadas / totalBarra) * 100));
+              return (
+                <div style={{ margin: "0 0 14px" }}>
+                  <div style={{ height: 6, background: C.hondo, borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: C.ciruela, borderRadius: 4, transition: "width .3s ease" }} />
+                  </div>
+                  <p style={{ fontSize: 12.5, color: C.suave, margin: "6px 0 0" }}>Pregunta {contestadas + 1} de ~{totalBarra}</p>
+                </div>
+              );
+            })()}
             {ultimo && <p style={{ fontSize: 14.5, color: C.ciruela, background: "#F5EEF2", borderRadius: 10, padding: "10px 14px", margin: "0 0 18px" }}>
               {ultimo.gan > 0 ? `Con eso he encontrado ${ultimo.gan} cosa${ultimo.gan === 1 ? "" : "s"} más para ti` : "Con eso he descartado cosas que no venían al caso"}{ultimo.perd > 0 ? ` y he tachado ${ultimo.perd}.` : "."}
             </p>}
             {pregunta ? (
-              <div style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 16, padding: "24px 22px" }}>
+              <div style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 16, boxShadow: sombra, padding: "24px 22px" }}>
                 <h2 style={{ font: `500 23px/1.3 ${serif}`, margin: "0 0 8px" }}>{contestadas === 0 && saludo ? `${saludo}, ` : ""}{contestadas === 0 && saludo ? pregunta.texto.replace(/^([¿¡]*)([A-ZÁÉÍÓÚÑ])/, (_, pre, letra) => pre + letra.toLowerCase()) : pregunta.texto}</h2>
                 {pregunta.ayuda ? <p style={{ fontSize: 15, color: C.suave, margin: "0 0 18px" }}>{pregunta.ayuda}</p> : <div style={{ height: 12 }} />}
                 {entrada()}
@@ -792,7 +811,7 @@ export default function LoQueTeToca() {
                 </div>
               </div>
             ) : (
-              <div style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 16, padding: "24px 22px" }}>
+              <div style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 16, boxShadow: sombra, padding: "24px 22px" }}>
                 <h2 style={{ font: `500 23px ${serif}`, margin: "0 0 10px" }}>Ya está{saludo ? `, ${saludo}` : ""}.</h2>
                 <p style={{ fontSize: 15.5, color: C.suave, margin: "0 0 18px" }}>No me queda nada por preguntarte. Vuelve cuando cambie algo: un nacimiento, una mudanza, un trabajo nuevo, alguien a quien empieces a cuidar. Cada cambio abre puertas nuevas y cierra otras.</p>
                 <button style={btn(true)} onClick={() => setPantalla("resultados")}>Ver lo mío</button>
@@ -820,7 +839,7 @@ export default function LoQueTeToca() {
               </p>
             </div>
 
-            <div style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 16, padding: 20, marginBottom: 24 }}>
+            <div style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 16, boxShadow: sombra, padding: 20, marginBottom: 24 }}>
               <div style={{ font: `500 17px ${serif}`, marginBottom: 6 }}>Ha pasado algo nuevo</div>
               <p style={{ color: C.suave, fontSize: 14.5, margin: "0 0 16px" }}>Prueba con “ha nacido mi hijo” y una fecha. Es el primer ejemplo del modelo de línea de tiempo.</p>
               <select style={inputBase} value={nuevoEvento.tipo} onChange={(e) => setNuevoEvento((v) => ({ ...v, tipo: e.target.value }))}>
@@ -834,11 +853,11 @@ export default function LoQueTeToca() {
             <div>
               <h2 style={{ font: `500 17px ${serif}`, margin: "0 0 12px" }}>Línea de tiempo</h2>
               {eventos.length === 0 ? (
-                <div style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 14, padding: 18, color: C.suave, fontSize: 14.5 }}>
+                <div style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 14, boxShadow: sombra, padding: 18, color: C.suave, fontSize: 14.5 }}>
                   Todavía no has añadido hechos. Tus respuestas del cuestionario siguen funcionando exactamente igual.
                 </div>
               ) : eventos.slice().sort((a, b) => (b.fecha || "").localeCompare(a.fecha || "")).map((e) => (
-                <div key={e.id} style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 14, padding: "15px 16px", marginBottom: 10 }}>
+                <div key={e.id} style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 14, boxShadow: sombra, padding: "15px 16px", marginBottom: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
                     <div>
                       <div style={{ font: `500 17px ${serif}` }}>{EVENTO_LABEL[e.tipo] || "Hecho de vida"}</div>
@@ -856,7 +875,7 @@ export default function LoQueTeToca() {
         {pantalla === "resultados" && (
           <div>
             {tuyas.length === 0 && mirar.length === 0 ? (
-              <div style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 16, padding: 22 }}><p style={{ margin: 0, color: C.suave }}>Todavía no me has contado lo suficiente. Contesta unas cuantas preguntas y esto se llena.</p></div>
+              <div style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 16, boxShadow: sombra, padding: 22 }}><p style={{ margin: 0, color: C.suave }}>Todavía no me has contado lo suficiente. Contesta unas cuantas preguntas y esto se llena.</p></div>
             ) : (
               <>
                 <div style={{ marginBottom: 26 }}>
@@ -876,7 +895,7 @@ export default function LoQueTeToca() {
                   return <section key={cat} style={{ marginBottom: 28 }}><h2 style={{ font: `500 17px ${serif}`, margin: "0 0 12px" }}>{titulo} <span style={{ color: C.suave, fontWeight: 400 }}>· {g.length}</span></h2>{g.map((x) => <Ficha key={x.id} x={x} />)}</section>;
                 })}
 
-                {retro.length > 0 && <div style={{ border: `1px solid ${C.miel}`, background: C.tarjeta, borderRadius: 14, padding: 18, marginBottom: 24 }}>
+                {retro.length > 0 && <div style={{ border: `1px solid ${C.miel}`, background: C.tarjeta, borderRadius: 14, padding: 18, marginBottom: 24, boxShadow: sombra }}>
                   <h3 style={{ font: `500 18px ${serif}`, margin: "0 0 6px" }}>Y esto es de años pasados</h3>
                   <p style={{ fontSize: 14.5, color: C.suave, margin: "0 0 14px" }}>Si no lo aplicaste en su día, Hacienda deja corregir las declaraciones de los últimos {EJERCICIOS_RECT} años. No hace falta que te devuelvan la razón: se pide y ya está.</p>
                   {retro.map((x) => <div key={x.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 15, padding: "8px 0", borderBottom: `1px solid ${C.hondo}` }}><span>{x.a}</span><span style={{ color: C.miel, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>hasta {fmtE(x.imp * EJERCICIOS_RECT)}</span></div>)}
@@ -884,7 +903,7 @@ export default function LoQueTeToca() {
                   <p style={{ fontSize: 12.5, color: C.suave, marginTop: 12, marginBottom: 0 }}>Es el techo, no lo que vas a cobrar seguro. Cada año se revisa por separado.</p>
                 </div>}
 
-                <div style={{ background: C.tarjeta, border: `2px solid ${C.ciruela}`, borderRadius: 16, padding: "22px 22px", marginBottom: 24 }}>
+                <div style={{ background: C.tarjeta, border: `2px solid ${C.ciruela}`, borderRadius: 16, padding: "22px 22px", marginBottom: 24, boxShadow: "0 4px 20px rgba(110,61,91,0.12)" }}>
                   <h2 style={{ font: `500 20px ${serif}`, margin: "0 0 8px" }}>¿Quieres que te lo consigamos nosotros?</h2>
                   <p style={{ fontSize: 15, margin: "0 0 14px" }}>Comprobarlo es gratis y seguirá siéndolo siempre. Si además quieres que nos encarguemos del papeleo, no pagas nada por adelantado: <strong>solo cobramos algo si el dinero llega a tu cuenta</strong>. Si te lo deniegan, no debes nada.</p>
                   <label style={{ display: "block", fontSize: 14, color: C.suave, marginBottom: 6 }}>Tu email, para contactarte</label>
