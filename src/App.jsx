@@ -500,6 +500,42 @@ function derivar(r) {
   f.esfuerzo = f.ingresos > 0 && f.renta > 0 ? (f.renta * 12) / f.ingresos : null;
   return f;
 }
+/* Cómo llega cada ayuda a tu bolsillo. Es la diferencia que de verdad importa:
+   - automatica: te la aplican sin que hagas nada.
+   - evidente: hay que pedirla, pero alguien te lo va a decir (el hospital, la
+     empresa, el SEPE, el colegio). Difícil que se te escape.
+   - silenciosa: nadie te va a avisar. Si no te enteras y la pides, se pierde.
+   Todo lo que no esté listado aquí es silencioso, que es la norma. */
+const AUTOMATICAS = ["bonotermico", "farmacia"];
+const EVIDENTES = [
+  "nacimientoSS", "riesgo", "paro", "subsidio", "subsidio52", "viudedad", "ceseact",
+  "maternidad", "viviendaded", "conjunta", "herenciaISD", "moves", "tarifaplana",
+  "becamec", "comedor", "libros",
+];
+const obtencionDe = (id) =>
+  AUTOMATICAS.includes(id) ? "automatica" : EVIDENTES.includes(id) ? "evidente" : "silenciosa";
+
+const OBTENCION_TEXTO = {
+  automatica: { etiqueta: "Te llega sola", detalle: "No tienes que pedir nada: se aplica automáticamente." },
+  evidente: { etiqueta: "Hay que pedirla", detalle: "Hay que solicitarla, pero es de las que se ven venir: normalmente alguien te avisa." },
+  silenciosa: { etiqueta: "Nadie te va a avisar", detalle: "Si no la pides tú, nadie lo va a hacer por ti. Aquí es donde se pierde el dinero." },
+};
+
+/* Enlaces. Antes todas apuntaban a la home del organismo y había que buscar a mano,
+   y 24 ayudas no tenían enlace ninguno. Ahora: si hay una URL directa verificada se
+   usa esa; si no, se manda al usuario a una búsqueda ya escrita con el nombre oficial
+   del trámite, acotada al dominio del organismo o a su comunidad o municipio. */
+const buscar = (terminos) => `https://www.google.com/search?q=${encodeURIComponent(terminos.filter(Boolean).join(" "))}`;
+const dominioDe = (url) => { try { return new URL(url).hostname; } catch { return null; } };
+
+function enlaceDe(x, r, nombreComunidad) {
+  if (x.directo) return { url: x.directo, texto: "Ir a pedirla", directo: true };
+  const dominio = x.link ? dominioDe(x.link) : null;
+  if (dominio) return { url: buscar([`site:${dominio}`, `"${x.n}"`]), texto: "Buscar cómo se pide", directo: false };
+  const territorio = x.amb === "Local" ? (r.municipio || nombreComunidad) : nombreComunidad;
+  return { url: buscar([`"${x.n}"`, territorio, "sede electrónica"]), texto: "Buscar cómo se pide", directo: false };
+}
+
 const contestada = (r, id) => r[id] !== undefined && r[id] !== "";
 const POR_ID = Object.fromEntries(PREGUNTAS.map((p) => [p.id, p]));
 // Una pregunta que no aplica a tu caso (el alquiler si tienes casa propia) no debe
@@ -512,9 +548,10 @@ const aplicable = (id, f) => {
 function evaluar(r) {
   const f = derivar(r);
   return D.map((d) => {
+    const obt = obtencionDe(d.id);
     const faltan = d.req.filter((q) => !contestada(r, q) && aplicable(q, f));
-    if (faltan.length) return { ...d, estado: "desconocido", faltan };
-    return { ...d, ...d.ev(f), faltan: [] };
+    if (faltan.length) return { ...d, obt, estado: "desconocido", faltan };
+    return { ...d, obt, ...d.ev(f), faltan: [] };
   });
 }
 
@@ -546,6 +583,16 @@ function Marca({ tam = 30, onClick = null }) {
       </svg>
       <span style={{ font: `500 ${Math.round(tam * 0.63)}px ${serif}`, color: C.ciruela, whiteSpace: "nowrap" }}>Lo que te toca</span>
     </div>
+  );
+}
+
+function Obtencion({ tipo }) {
+  const color = { automatica: C.suave, evidente: C.suave, silenciosa: C.ciruela }[tipo];
+  const fondo = tipo === "silenciosa" ? "#F5EEF2" : "transparent";
+  return (
+    <span style={{ fontSize: 12, color, background: fondo, border: `1px solid ${tipo === "silenciosa" ? C.ciruela : C.borde}`, borderRadius: 20, padding: "3px 9px", whiteSpace: "nowrap" }}>
+      {OBTENCION_TEXTO[tipo].etiqueta}
+    </span>
   );
 }
 
@@ -627,6 +674,9 @@ export default function LoQueTeToca() {
   const totalRetro = retro.reduce((s, x) => s + x.imp * EJERCICIOS_RECT, 0);
   const urgentes = [...tuyas, ...mirar].filter((x) => x.plazoNota);
   const avisos = [...tuyas, ...mirar].filter((x) => x.aviso);
+  const accionables = [...tuyas, ...mirar];
+  const silenciosas = accionables.filter((x) => x.obt === "silenciosa" && !["solicitada", "concedida"].includes(gestion[x.id]));
+  const yaTienes = accionables.filter((x) => ["solicitada", "concedida"].includes(gestion[x.id]));
   const contestadas = PREGUNTAS.filter((p) => contestada(r, p.id)).length;
   const totalAplicables = useMemo(() => {
     const f = derivar(r);
@@ -728,18 +778,28 @@ export default function LoQueTeToca() {
 
   const territorio = (x) => ({ Estado: "De toda España", Auton: nombreCCAA(r.comunidad), Local: r.municipio || "Tu ayuntamiento" }[x.amb]);
 
-  const Ficha = ({ x }) => (
+  const Ficha = ({ x }) => {
+    const tengo = gestion[x.id];
+    const cerrada = tengo === "concedida" || tengo === "solicitada";
+    return (
     <article onClick={() => setAbierta(abierta === x.id ? null : x.id)}
-      style={{ background: C.tarjeta, border: `1px solid ${C.borde}`, borderRadius: 14, boxShadow: sombra, padding: "16px 18px", marginBottom: 12, cursor: "pointer" }}>
+      style={{ background: C.tarjeta, border: `1px solid ${cerrada ? C.salvia : C.borde}`, borderRadius: 14, boxShadow: sombra, padding: "16px 18px", marginBottom: 12, cursor: "pointer", opacity: cerrada ? 0.72 : 1 }}>
       <div style={{ display: "flex", gap: 12, justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ font: `500 18px/1.3 ${serif}`, marginBottom: 4 }}>{x.a}</div>
+          <div style={{ font: `500 18px/1.3 ${serif}`, marginBottom: 4 }}>{cerrada ? "✓ " : ""}{x.a}</div>
           <div style={{ fontSize: 12.5, color: C.suave }}>{x.n} · {territorio(x)}</div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
           {x.imp ? <div style={{ font: `500 20px ${serif}`, color: C.miel, fontVariantNumeric: "tabular-nums", marginBottom: 4 }}>{fmtE(x.imp)}</div> : null}
           <Etiqueta estado={x.estado} />
         </div>
+      </div>
+      <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 9 }}>
+        <Obtencion tipo={x.obt} />
+        {tengo === "concedida" && <span style={{ fontSize: 12, color: C.salvia, border: `1px solid ${C.salvia}`, borderRadius: 20, padding: "3px 9px" }}>Ya la tienes</span>}
+        {tengo === "solicitada" && <span style={{ fontSize: 12, color: C.salvia, border: `1px solid ${C.salvia}`, borderRadius: 20, padding: "3px 9px" }}>Ya la pediste</span>}
+        {tengo === "preparando" && <span style={{ fontSize: 12, color: C.suave, border: `1px solid ${C.borde}`, borderRadius: 20, padding: "3px 9px" }}>Juntando papeles</span>}
+        {tengo === "denegada" && <span style={{ fontSize: 12, color: C.alerta, border: `1px solid ${C.alerta}`, borderRadius: 20, padding: "3px 9px" }}>Te la denegaron</span>}
       </div>
       <div style={{ marginTop: 10, fontSize: 15, lineHeight: 1.55 }}>{x.motivo}</div>
       {x.it && <div style={{ fontSize: 14, color: C.suave, marginTop: 4 }}>{x.it}</div>}
@@ -757,14 +817,12 @@ export default function LoQueTeToca() {
               </label>);
           })}
           {x.plazoNota && <p style={{ fontSize: 14.5, color: C.alerta, margin: "14px 0 0" }}>{x.plazoNota}</p>}
+          <p style={{ fontSize: 14, color: C.suave, margin: "14px 0 0" }}>{OBTENCION_TEXTO[x.obt].detalle} Se pide en {x.org}.</p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16, alignItems: "center" }}>
-            {x.link ? (
-              <a href={x.link} target="_blank" rel="noreferrer" style={{ ...btn(true), textDecoration: "none", display: "inline-block" }}>Ir a pedirla</a>
-            ) : (
-              <span style={{ fontSize: 14, color: C.suave }}>
-                Se pide en {x.amb === "Local" ? (r.municipio || "tu ayuntamiento") : nombreCCAA(r.comunidad)}. Busca "{x.n}" en su sede electrónica
-              </span>
-            )}
+            {(() => {
+              const e = enlaceDe(x, r, nombreCCAA(r.comunidad));
+              return <a href={e.url} target="_blank" rel="noreferrer" style={{ ...btn(true), textDecoration: "none", display: "inline-block" }}>{e.texto}</a>;
+            })()}
             <select value={gestion[x.id] || "pendiente"} onChange={(e) => setGestion((g) => ({ ...g, [x.id]: e.target.value }))}
               style={{ ...inputBase, width: "auto", minWidth: 220, padding: "10px 12px", fontSize: 14.5 }}>
               <option value="pendiente">Todavía no la he pedido</option>
@@ -780,7 +838,107 @@ export default function LoQueTeToca() {
         </div>
       )}
     </article>
-  );
+    );
+  };
+
+  if (pantalla === "informe") {
+    const sinHacer = accionables.filter((x) => !["solicitada", "concedida"].includes(gestion[x.id]));
+    const grupos = [
+      ["silenciosa", "Nadie te las va a dar si no las pides", "Aquí es donde se pierde el dinero: ninguna de estas llega sola ni te la va a recordar nadie."],
+      ["evidente", "Hay que pedirlas, pero se ven venir", "Normalmente alguien te avisa: el hospital, la empresa, el colegio o la propia administración."],
+      ["automatica", "Te llegan solas", "No tienes que pedir nada. Lo único que conviene es comprobar que te las están aplicando."],
+    ];
+    const fechaHoy = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "long", year: "numeric" }).format(hoy());
+
+    const Entrada = ({ x }) => (
+      <div style={{ breakInside: "avoid", padding: "14px 0", borderBottom: `1px solid ${C.borde}` }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "flex-start" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ font: `500 17px/1.3 ${serif}` }}>{x.a}</div>
+            <div style={{ fontSize: 12.5, color: C.suave }}>{x.n} · {x.org} · {territorio(x)}</div>
+          </div>
+          {x.imp ? <div style={{ font: `500 18px ${serif}`, color: C.miel, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{fmtE(x.imp)}</div> : null}
+        </div>
+        <p style={{ margin: "8px 0 0", fontSize: 14.5 }}><strong style={{ fontWeight: 600 }}>Por qué te corresponde:</strong> {x.motivo}</p>
+        {x.plazoNota && <p style={{ margin: "5px 0 0", fontSize: 14, color: C.alerta }}><strong style={{ fontWeight: 600 }}>Plazo:</strong> {x.plazoNota}</p>}
+        <p style={{ margin: "5px 0 0", fontSize: 14 }}><strong style={{ fontWeight: 600 }}>Papeles:</strong> {x.docs.join(" · ")}</p>
+        <p style={{ margin: "5px 0 0", fontSize: 14, color: C.suave }}>
+          <strong style={{ fontWeight: 600, color: C.tinta }}>Dónde:</strong> busca «{x.n}» en {x.amb === "Estado" ? x.org : territorio(x)}.
+        </p>
+      </div>
+    );
+
+    return (
+      <div style={{ background: "#fff", color: C.tinta, font: `16px/1.6 ${sans}`, minHeight: "100vh", padding: "30px 20px 70px" }}>
+        <div style={{ maxWidth: 760, margin: "0 auto" }}>
+          <div data-noprint style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 26 }}>
+            <button style={btnSuave} onClick={() => setPantalla("resultados")}>← Volver</button>
+            <button style={btn(true)} onClick={() => { track("imprimir_informe"); window.print(); }}>Guardar en PDF o imprimir</button>
+          </div>
+
+          <div style={{ borderBottom: `2px solid ${C.tinta}`, paddingBottom: 16, marginBottom: 22 }}>
+            <Marca tam={30} />
+            <h1 style={{ font: `500 27px/1.25 ${serif}`, margin: "16px 0 6px" }}>
+              {saludo ? `Informe de ${saludo}` : "Tu informe"}: lo que puedes pedir
+            </h1>
+            <p style={{ margin: 0, fontSize: 14, color: C.suave }}>
+              Generado el {fechaHoy} · {territorio({ amb: "Auton" })}{r.municipio ? ` · ${r.municipio}` : ""}
+            </p>
+          </div>
+
+          <p style={{ margin: "0 0 8px", fontSize: 16 }}>
+            Según lo que me has contado, te corresponden <strong style={{ fontWeight: 600 }}>{tuyas.length}</strong> cosas y hay otras <strong style={{ fontWeight: 600 }}>{mirar.length}</strong> que merecen que las mires.
+            {total > 0 && <> De lo que se puede poner cifra, suman <strong style={{ color: C.miel, fontWeight: 600 }}>{fmtE(total)}</strong> al año.</>}
+          </p>
+          {silenciosas.length > 0 && (
+            <p style={{ margin: "0 0 26px", fontSize: 16 }}>
+              <strong style={{ fontWeight: 600 }}>{silenciosas.length}</strong> de ellas no te las va a dar nadie si no las pides tú.
+            </p>
+          )}
+
+          {grupos.map(([tipo, titulo, bajada]) => {
+            const g = sinHacer.filter((x) => x.obt === tipo);
+            if (!g.length) return null;
+            return (
+              <section key={tipo} style={{ marginBottom: 30, breakInside: "avoid" }}>
+                <h2 style={{ font: `500 19px ${serif}`, margin: "0 0 3px" }}>{titulo} <span style={{ color: C.suave, fontWeight: 400 }}>· {g.length}</span></h2>
+                <p style={{ margin: "0 0 6px", fontSize: 14, color: C.suave }}>{bajada}</p>
+                {g.map((x) => <Entrada key={x.id} x={x} />)}
+              </section>
+            );
+          })}
+
+          {yaTienes.length > 0 && (
+            <section style={{ marginBottom: 30 }}>
+              <h2 style={{ font: `500 19px ${serif}`, margin: "0 0 3px" }}>Estas ya las tienes o las has pedido <span style={{ color: C.suave, fontWeight: 400 }}>· {yaTienes.length}</span></h2>
+              <p style={{ margin: "0 0 6px", fontSize: 14, color: C.suave }}>Las dejo aquí para que tengas la foto completa, pero no hay nada que hacer con ellas.</p>
+              {yaTienes.map((x) => (
+                <div key={x.id} style={{ padding: "9px 0", borderBottom: `1px solid ${C.borde}`, fontSize: 14.5 }}>
+                  ✓ {x.a} <span style={{ color: C.suave }}>— {x.n}</span>
+                </div>
+              ))}
+            </section>
+          )}
+
+          <div data-noprint style={{ background: C.tarjeta, border: `2px solid ${C.ciruela}`, borderRadius: 16, padding: 22, marginBottom: 26, boxShadow: "0 4px 20px rgba(110,61,91,0.12)" }}>
+            <h2 style={{ font: `500 19px ${serif}`, margin: "0 0 8px" }}>¿Prefieres no hacer tú el papeleo?</h2>
+            <p style={{ fontSize: 15, margin: "0 0 14px" }}>Este informe es tuyo y es gratis, con o sin nosotros. Si quieres que nos encarguemos de presentarlo todo, <strong>no pagas nada por adelantado: solo si el dinero llega a tu cuenta</strong>.</p>
+            <a
+              href={`mailto:polazarock@gmail.com?subject=${encodeURIComponent("Quiero que me ayudéis a tramitar mis ayudas")}&body=${encodeURIComponent(`Hola,\n\nSoy ${nombre || "un usuario del test"} y quiero que me ayudéis con estas:\n\n${sinHacer.map((x) => `- ${x.a} (${x.n})`).join("\n")}\n`)}`}
+              onClick={() => track("click_quiero_ayuda", { desde: "informe" })}
+              style={{ ...btn(true), textDecoration: "none", display: "inline-block" }}
+            >
+              Quiero que me ayudéis
+            </a>
+          </div>
+
+          <p style={{ fontSize: 12.5, color: C.suave, borderTop: `1px solid ${C.borde}`, paddingTop: 14, margin: 0 }}>
+            Informe orientativo generado por Lo que te toca a partir de tus respuestas. Los datos del catálogo son de demostración: contrasta cada cifra, requisito y plazo con la convocatoria oficial antes de presentar nada. No somos un organismo público ni una asesoría.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (pantalla === "bienvenida") return (
     <div style={{ background: C.fondo, color: C.tinta, font: `16px/1.6 ${sans}`, minHeight: "100vh", display: "flex", alignItems: "center", padding: "40px 20px" }}>
@@ -925,6 +1083,19 @@ export default function LoQueTeToca() {
                 <div style={{ marginBottom: 26 }}>
                   <h1 style={{ font: `500 26px/1.3 ${serif}`, margin: "0 0 10px" }}>{saludo ? `${saludo}, esto es lo tuyo` : "Esto es lo tuyo"}</h1>
                   <p style={{ margin: 0, fontSize: 16 }}>He encontrado <strong style={{ fontWeight: 600 }}>{tuyas.length}</strong> cosas que te corresponden{mirar.length > 0 && <> y otras <strong style={{ fontWeight: 600 }}>{mirar.length}</strong> que merecen que las mires</>}.{total > 0 && <> Solo de lo que puedo poner cifra, son <strong style={{ color: C.miel, fontWeight: 600 }}>{fmtE(total)}</strong> al año.</>}{urgentes.length > 0 && <> Hay <strong style={{ fontWeight: 600 }}>{urgentes.length}</strong> con fecha límite, así que empieza por ahí.</>}</p>
+                  {silenciosas.length > 0 && (
+                    <p style={{ margin: "12px 0 0", fontSize: 15.5, background: "#F5EEF2", color: C.ciruela, borderRadius: 10, padding: "12px 15px" }}>
+                      De todas ellas, <strong style={{ fontWeight: 600 }}>{silenciosas.length}</strong> no te las va a dar nadie si no las pides tú. Son las que de verdad se pierden.
+                    </p>
+                  )}
+                  {yaTienes.length > 0 && (
+                    <p style={{ margin: "10px 0 0", fontSize: 14.5, color: C.suave }}>
+                      {yaTienes.length === 1 ? "Una ya la tienes o la has pedido" : `${yaTienes.length} ya las tienes o las has pedido`}, así que las dejo marcadas y fuera de la cuenta de arriba.
+                    </p>
+                  )}
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+                    <button style={btnSuave} onClick={() => { track("ver_informe"); setPantalla("informe"); }}>Ver mi informe completo</button>
+                  </div>
                 </div>
 
                 {avisos.length > 0 && <div style={{ background: "#FCF3F0", border: "1px solid #EDD8D0", borderRadius: 14, padding: "14px 16px", marginBottom: 24 }}>

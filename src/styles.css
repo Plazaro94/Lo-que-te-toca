@@ -8,3 +8,9 @@ button:not(:disabled):hover { transform: translateY(-1px); filter: brightness(1.
 button:not(:disabled):active { transform: translateY(0); filter: brightness(0.98); }
 input, select { transition: border-color 0.15s ease, box-shadow 0.15s ease; }
 input:focus, select:focus { outline: none; border-color: #6E3D5B; box-shadow: 0 0 0 3px rgba(110,61,91,0.14); }
+
+@media print {
+  [data-noprint] { display: none !important; }
+  html, body { background: #fff !important; }
+  @page { margin: 16mm; }
+}
