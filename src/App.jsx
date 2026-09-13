@@ -45,40 +45,39 @@ const edadDe = (s) => {
 
 const PREGUNTAS = [
   { id: "comunidad", texto: "¿Dónde vives?", ayuda: "Cada comunidad tiene sus propias ayudas y sus propias deducciones", tipo: "select", opciones: CCAA, prioridad: 100 },
-  { id: "municipio", texto: "¿Y en qué pueblo o ciudad?", ayuda: "Los ayuntamientos también dan lo suyo, y casi nadie lo pide", tipo: "texto", prioridad: 90 },
+  { id: "municipio", texto: "¿En qué pueblo o ciudad vives?", ayuda: "Los ayuntamientos también dan lo suyo, y casi nadie lo pide", tipo: "texto", prioridad: 90, tras: "comunidad" },
   { id: "nacimiento", texto: "¿Cuándo naciste?", ayuda: "La edad abre y cierra muchas puertas", tipo: "fecha", prioridad: 95 },
   { id: "situacion", texto: "¿A qué te dedicas ahora mismo?", tipo: "select", prioridad: 92,
     opciones: [["asalariado", "Trabajo para una empresa"], ["autonomo", "Soy autónomo"], ["desempleado", "Estoy en paro"], ["estudiante", "Estoy estudiando"], ["jubilado", "Estoy jubilado o cobro una pensión"], ["hogar", "Ahora mismo no trabajo"]] },
   { id: "pareja", texto: "¿Vives en pareja?", tipo: "select", prioridad: 89,
     opciones: [["casado", "Sí, casados"], ["hecho", "Sí, pareja de hecho registrada"], ["junto", "Sí, pero sin papeles"], ["no", "No, vivo sin pareja"]] },
-  { id: "adultos", texto: "¿Cuántos adultos vivís en casa, contándote a ti?", tipo: "numero", prioridad: 88 },
+  { id: "adultos", texto: "¿Cuántos adultos vivís en casa, contándote a ti?", ayuda: "Cuenta a tu pareja si vivís juntos, y a cualquier otro adulto: padres, hermanos, compañeros de piso", tipo: "numero", prioridad: 88, tras: "pareja" },
   { id: "hijos", texto: "¿Tienes hijos?", ayuda: "Añade la fecha de nacimiento de cada uno. Si no tienes, pasa de largo", tipo: "fechas", prioridad: 87 },
   { id: "ingresos", texto: "Más o menos, ¿cuánto entra al año en casa?", ayuda: "En bruto y sumando lo de todos. Un número aproximado vale", tipo: "numero", prioridad: 85 },
   { id: "vivienda", texto: "¿Dónde vives ahora?", tipo: "select", prioridad: 84,
     opciones: [["alquiler", "En un piso de alquiler"], ["propiedad", "En una casa mía"], ["cedida", "En una casa cedida o de la familia"], ["sinhogar", "No tengo vivienda estable"]] },
-  { id: "renta", texto: "¿Cuánto pagas de alquiler al mes?", tipo: "numero", cuando: (f) => f.vivienda === "alquiler" },
-  { id: "anyoCompra", texto: "¿En qué año la compraste?", ayuda: "Si fue antes de 2013 conservas un beneficio fiscal que ya no existe para nadie más", tipo: "numero", cuando: (f) => f.vivienda === "propiedad" },
-  { id: "pisoAlquilado", texto: "¿Tienes algún piso alquilado a otra persona?", tipo: "sino", ayuda: "Da beneficios fiscales, pero también cuenta como ingreso para otras cosas" },
-  { id: "titularLuz", texto: "¿La luz está a tu nombre?", tipo: "sino", cuando: (f) => f.vivienda !== "sinhogar" },
+  { id: "renta", texto: "¿Cuánto pagas de alquiler al mes?", tipo: "numero", cuando: (f) => f.vivienda === "alquiler", tras: "vivienda" },
+  { id: "anyoCompra", texto: "¿En qué año compraste tu vivienda?", ayuda: "Si fue antes de 2013 conservas un beneficio fiscal que ya no existe para nadie más", tipo: "numero", cuando: (f) => f.vivienda === "propiedad", tras: "vivienda" },
+  { id: "pisoAlquilado", texto: "¿Tienes algún piso alquilado a otra persona?", tipo: "sino", ayuda: "Da beneficios fiscales, pero también cuenta como ingreso para otras cosas", cuando: (f) => f.vivienda !== "sinhogar" },
+  { id: "titularLuz", texto: "¿La luz está a tu nombre?", tipo: "sino", cuando: (f) => f.vivienda !== "sinhogar", tras: "vivienda" },
   { id: "discapacidad", texto: "¿Hay alguna discapacidad reconocida en casa?", tipo: "select",
     opciones: [["no", "No"], ["leve", "Sí, entre el 33% y el 64%"], ["grave", "Sí, del 65% o más"], ["tramite", "La estamos tramitando"]] },
+  { id: "discapacidadQuien", texto: "¿De quién es la discapacidad?", ayuda: "Cambia mucho el resultado: no abre las mismas puertas si es tuya, de un hijo o de un mayor a tu cargo. Marca todas las que haya", tipo: "multi", cuando: (f) => !!f.discapacidad && f.discapacidad !== "no", tras: "discapacidad",
+    opciones: [["yo", "Mía"], ["hijo", "De un hijo o hija"], ["mayor", "De un familiar mayor a mi cargo"], ["pareja", "De mi pareja"], ["otro", "De otra persona de casa"]] },
   { id: "dependencia", texto: "¿Cuidas de alguien que no puede valerse solo?", ayuda: "Un padre, una madre, un familiar enfermo. Aunque no cobres nada por ello", tipo: "sino" },
-  { id: "monoparental", texto: "¿Estás tú solo al frente de tus hijos?", tipo: "sino", cuando: (f) => f.nHijos > 0 && f.adultos === 1 },
-  { id: "separado", texto: "¿Te has separado o divorciado?", tipo: "sino", cuando: (f) => f.nHijos > 0 || f.pareja === "no" },
   { id: "embarazo", texto: "¿Hay un embarazo en marcha?", tipo: "sino", cuando: (f) => f.edad != null && f.edad < 50 },
-  { id: "guarderia", texto: "¿Algún peque va a guardería de pago?", tipo: "sino", cuando: (f) => f.hijosMenores3 > 0 },
+  { id: "guarderia", texto: "¿Algún peque va a guardería de pago?", tipo: "sino", cuando: (f) => f.hijosMenores3 > 0, tras: "hijos" },
   { id: "estudios", texto: "¿Hay alguien estudiando en casa?", ayuda: "Marca todo lo que haya", tipo: "multi", cuando: (f) => f.nHijos > 0 || f.situacion === "estudiante",
     opciones: [["infantil", "Guardería o infantil"], ["obligatoria", "Primaria o ESO"], ["postobligatoria", "Bachillerato o FP"], ["universidad", "Universidad"], ["ninguno", "Nadie estudia"]] },
-  { id: "cotizado", texto: "¿Cuánto has cotizado en los últimos seis años?", ayuda: "Si no lo sabes de memoria, mira tu vida laboral. A ojo también vale", tipo: "select", cuando: (f) => f.situacion === "desempleado",
+  { id: "cotizado", texto: "En los últimos 6 años, ¿cuánto tiempo has estado cotizando?", ayuda: "Si no lo sabes de memoria, mira tu vida laboral. A ojo también vale", tipo: "select", cuando: (f) => f.situacion === "desempleado", tras: "situacion",
     opciones: [["mucho", "Más de un año"], ["poco", "Entre 3 meses y un año"], ["nada", "Menos de 3 meses, o nada"]] },
-  { id: "altaAutonomo", texto: "¿Cuándo te diste de alta de autónomo?", tipo: "fecha", cuando: (f) => f.situacion === "autonomo" },
+  { id: "altaAutonomo", texto: "¿Cuándo te diste de alta de autónomo?", tipo: "fecha", cuando: (f) => f.situacion === "autonomo", tras: "situacion" },
   { id: "anyosResidencia", texto: "¿Cuánto llevas viviendo en España?", tipo: "select",
     opciones: [["siempre", "Toda la vida, o más de 10 años"], ["media", "Entre 1 y 10 años"], ["poco", "Menos de un año"]] },
   { id: "vehiculo", texto: "¿Tienes coche o moto a tu nombre?", tipo: "sino" },
   { id: "reforma", texto: "¿Te ronda la cabeza reformar la casa?", ayuda: "Cambiar ventanas, poner aislamiento, placas solares, caldera nueva", tipo: "sino", cuando: (f) => f.vivienda === "propiedad" },
   { id: "transporte", texto: "¿Usas el transporte público a menudo?", tipo: "sino" },
   { id: "herencia", texto: "¿Has heredado algo en los últimos años?", tipo: "sino" },
-  { id: "declaraRenta", texto: "¿Sueles hacer la declaración de la renta?", ayuda: "Sirve para saber si puedes reclamar lo que no pediste en su día", tipo: "sino" },
   { id: "violencia", texto: "¿Eres víctima acreditada de violencia de género?", ayuda: "Puedes saltarte esta pregunta sin problema. La hago porque abre derechos que mucha gente no sabe que tiene", tipo: "sino" },
 ];
 
@@ -115,7 +114,7 @@ const D = [
     req: ["embarazo", "situacion"], link: "https://www.seg-social.es",
     docs: ["Informe de tu médico", "Certificado de la empresa describiendo tu puesto"],
     ev: (f) => !f.embarazo ? no("No hay embarazo en marcha") :
-      ["asalariado", "autonomo"].includes(f.situacion) ? quiza("Si tu puesto no se puede adaptar, tienes derecho a irte a casa cobrando el 100%") :
+      ["asalariado", "autonomo"].includes(f.situacion) ? quiza("Si quien está embarazada tiene un puesto que no se puede adaptar, puede irse a casa cobrando el 100%") :
         no("Hay que estar trabajando y de alta") },
 
   { id: "paro", a: "El paro de toda la vida", n: "Prestación contributiva por desempleo", amb: "Estado", cat: "Prestación", org: "SEPE",
@@ -140,12 +139,13 @@ const D = [
         quiza("Piden 15 años cotizados en total. Es la ayuda más importante a esta edad porque sigue cotizando para tu jubilación") },
 
   { id: "pnc", a: "Una pensión aunque no hayas cotizado", n: "Pensión no contributiva", amb: "Estado", cat: "Prestación", org: "Tu comunidad",
-    req: ["nacimiento", "ingresos", "discapacidad", "anyosResidencia"], link: "https://imserso.es",
+    req: ["nacimiento", "ingresos", "discapacidad", "discapacidadQuien", "anyosResidencia"], link: "https://imserso.es",
     docs: ["Empadronamiento con histórico", "Ingresos de todos los que viven contigo", "Certificado de discapacidad si lo hay"],
     ev: (f) => f.ingresos > IPREM * 0.9 * f.miembros ? no("En casa entra por encima del límite") :
       (f.edad != null && f.edad >= 65) ? quiza("Por edad, si no te llega para una pensión normal") :
-        f.discapacidad === "grave" ? quiza("Por tener una discapacidad del 65% o más") :
-          no("Es para mayores de 65 o para discapacidad del 65% o más") },
+        (f.discapacidad === "grave" && f.disYo) ? quiza("Por tener una discapacidad del 65% o más") :
+          f.discapacidad === "grave" ? quiza("La pensión la pide la persona con la discapacidad, no la familia. Si vive contigo, puede solicitarla ella") :
+            no("Es para mayores de 65 o para discapacidad del 65% o más") },
 
   { id: "dependenciaPr", a: "Ayuda para cuidar a quien no puede valerse", n: "Prestaciones por dependencia", amb: "Estado", cat: "Prestación", org: "Servicios sociales",
     req: ["dependencia"], link: "https://imserso.es", plazoNota: "La valoración tarda meses. Cuanto antes la pidas, antes empieza a contar",
@@ -160,12 +160,13 @@ const D = [
       quiza("Si eres tú quien cuida, puedes cobrar por ello y además cotizar para tu jubilación. Mucha gente no lo sabe") },
 
   { id: "hijodiscap", a: "Ayuda por un hijo con discapacidad", n: "Prestación por hijo a cargo con discapacidad", amb: "Estado", cat: "Prestación", org: "Seguridad Social",
-    req: ["hijos", "discapacidad"], link: "https://www.seg-social.es",
+    req: ["hijos", "discapacidad", "discapacidadQuien"], link: "https://www.seg-social.es",
     docs: ["Certificado de discapacidad del niño", "Libro de familia"],
     ev: (f) => f.nHijos === 0 ? no("No hay hijos a cargo") :
       f.discapacidad === "no" ? no("No consta discapacidad reconocida") :
-        f.discapacidad === "tramite" ? quiza("En cuanto salga la resolución, vuelve aquí") :
-          si("Esta no mira lo que ganas: te toca igual", { it: "Una cantidad fija cada mes, sin límite de ingresos" }) },
+        !f.disHijo ? no("Esta es por un hijo con discapacidad, y la que consta en casa es de otra persona") :
+          f.discapacidad === "tramite" ? quiza("En cuanto salga la resolución, vuelve aquí") :
+            si("Esta no mira lo que ganas: te toca igual", { it: "Una cantidad fija cada mes, sin límite de ingresos" }) },
 
   { id: "viudedad", a: "Pensión si fallece tu pareja", n: "Pensión de viudedad y orfandad", amb: "Estado", cat: "Prestación", org: "Seguridad Social",
     req: ["pareja"], link: "https://www.seg-social.es",
@@ -205,17 +206,18 @@ const D = [
     ev: (f) => f.nHijos < 3 ? no("Hacen falta tres hijos, o dos si hay discapacidad") : si(`Con ${f.nHijos} hijos te toca`, { imp: 1200, it: "Y sube si sois familia numerosa de categoría especial" }) },
 
   { id: "monoded", a: "1.200 € al año por criar solo a dos hijos", n: "Deducción por ascendiente separado con dos hijos", amb: "Estado", cat: "Deducción", org: "Hacienda",
-    req: ["monoparental", "hijos"], link: "https://sede.agenciatributaria.gob.es", retro: true,
+    req: ["pareja", "hijos"], link: "https://sede.agenciatributaria.gob.es", retro: true,
     docs: ["Libro de familia", "Justificante de que no cobras anualidades por alimentos"],
-    ev: (f) => !f.monoparental ? no("No consta que estés solo al frente") :
-      f.nHijos < 2 ? no("Hacen falta dos hijos o más") : si("Estás solo con dos hijos o más: esto se olvida muchísimo", { imp: 1200 }) },
+    ev: (f) => f.pareja !== "no" ? no("Es para quien cría sin pareja") :
+      f.nHijos < 2 ? no("Hacen falta dos hijos o más") : si("Crías solo a dos hijos o más: esto se olvida muchísimo", { imp: 1200 }) },
 
   { id: "discapded", a: "Deducciones por discapacidad", n: "Mínimo y deducción por discapacidad", amb: "Estado", cat: "Deducción", org: "Hacienda",
-    req: ["discapacidad"], link: "https://sede.agenciatributaria.gob.es", retro: true,
+    req: ["discapacidad", "discapacidadQuien"], link: "https://sede.agenciatributaria.gob.es", retro: true,
     docs: ["Certificado del grado de discapacidad", "La declaración del año que quieras corregir"],
     ev: (f) => f.discapacidad === "no" ? no("No consta discapacidad reconocida") :
       f.discapacidad === "tramite" ? quiza("Importante: cuando salga, cuenta desde el día que lo solicitaste, no desde que te lo dan") :
-        si("Además de la deducción, te sube el mínimo exento. Muchos años se declara mal por no marcarlo", { imp: 1200 }) },
+        (f.disYo || f.disHijo || f.disMayor) ? si("Además de la deducción, te sube el mínimo exento. Muchos años se declara mal por no marcarlo", { imp: 1200 }) :
+          quiza("El mínimo por discapacidad se aplica por ti, por un hijo o por un ascendiente a tu cargo. Si es de tu pareja, mirad si os compensa declarar juntos") },
 
   { id: "alquilerded", a: "Deducción por tu alquiler", n: "Deducción estatal por alquiler de vivienda habitual", amb: "Estado", cat: "Deducción", org: "Hacienda",
     req: ["vivienda"], link: "https://sede.agenciatributaria.gob.es", retro: true,
@@ -278,18 +280,18 @@ const D = [
       quiza("Descuento en la cuota de internet. Se pide a la operadora, no a la administración") },
 
   { id: "farmacia", a: "Pagar menos en la farmacia", n: "Aportación reducida en prestación farmacéutica", amb: "Estado", cat: "Descuento", org: "Seguridad Social",
-    req: ["ingresos", "situacion", "discapacidad"], link: "https://www.seg-social.es",
+    req: ["ingresos", "situacion", "discapacidad", "discapacidadQuien"], link: "https://www.seg-social.es",
     docs: ["Se aplica solo, pero conviene comprobar en qué tramo te han puesto"],
-    ev: (f) => (f.ingresos < 18000 || f.discapacidad !== "no" || f.situacion === "jubilado") ?
+    ev: (f) => (f.ingresos < 18000 || f.disYo || f.situacion === "jubilado") ?
       si("Por tu situación te toca un tramo reducido. A veces está mal asignado y se paga de más durante años", { it: "Menos porcentaje en cada receta y un tope al mes" }) :
       no("Te corresponde el tramo general") },
 
   { id: "fntitulo", a: "El carné de familia numerosa", n: "Título de familia numerosa", amb: "Auton", cat: "Acceso", org: "Tu comunidad",
-    req: ["hijos", "discapacidad", "comunidad"], plazoNota: "Sácalo lo primero: es la llave que abre casi todo lo demás",
+    req: ["hijos", "discapacidad", "discapacidadQuien", "comunidad"], plazoNota: "Sácalo lo primero: es la llave que abre casi todo lo demás",
     docs: ["Libro de familia", "Empadronamiento de todos", "DNI de los padres", "Fotos de carné"],
     ev: (f) => f.nHijos >= 3 ? si(`Con ${f.nHijos} hijos te toca, y este papel te abre descuentos en el IBI, el transporte, las matrículas y las tasas`) :
-      f.nHijos === 2 && f.discapacidad !== "no" ? quiza("Con dos hijos y discapacidad puede salir. Merece preguntarlo") :
-        no("Hacen falta tres hijos, o dos con discapacidad") },
+      (f.nHijos === 2 && (f.disHijo || f.disYo || f.disPareja)) ? quiza("Con dos hijos y una discapacidad de un hijo o de un progenitor puede salir. Merece preguntarlo") :
+        no("Hacen falta tres hijos, o dos si un hijo o un progenitor tiene discapacidad") },
 
   { id: "carnejoven", a: "Descuentos por ser joven", n: "Carné Joven", amb: "Auton", cat: "Descuento", org: "Instituto de la juventud",
     req: ["nacimiento", "comunidad"], link: "https://www.injuve.es", docs: ["DNI"],
@@ -309,11 +311,12 @@ const D = [
     ev: () => quiza("Solo tiene sentido si te vas a cambiar de coche. Va por convocatorias y se agota") },
 
   { id: "ivtm", a: "No pagar el impuesto del coche", n: "Exención del IVTM por discapacidad", amb: "Local", cat: "Descuento", org: "Tu ayuntamiento",
-    req: ["vehiculo", "discapacidad", "municipio"],
+    req: ["vehiculo", "discapacidad", "discapacidadQuien", "municipio"],
     docs: ["Certificado de discapacidad", "Permiso de circulación", "Declaración de para qué usas el coche"],
     ev: (f) => !f.vehiculo ? no("No tienes vehículo a tu nombre") :
       f.discapacidad === "no" ? no("Hace falta discapacidad reconocida") :
-        si("Tienes coche y discapacidad reconocida: no deberías pagar este impuesto", { it: "Exención completa, todos los años" }) },
+        f.disYo ? si("Tienes coche y discapacidad reconocida: no deberías pagar este impuesto", { it: "Exención completa, todos los años" }) :
+          quiza("La exención va ligada a la persona con discapacidad: sale si el coche está a su nombre, o si se usa para llevarla habitualmente") },
 
   { id: "tarifaplana", a: "Cuota reducida de autónomo", n: "Tarifa reducida en el RETA", amb: "Estado", cat: "Descuento", org: "Seguridad Social",
     req: ["situacion", "altaAutonomo"], link: "https://www.seg-social.es",
@@ -362,11 +365,12 @@ const D = [
         si("Hay estudiante en casa y los ingresos encajan. Pídela aunque dudes: solicitarla es gratis") },
 
   { id: "becanee", a: "Ayuda si tu hijo necesita apoyo escolar", n: "Ayudas para alumnado con necesidad específica de apoyo", amb: "Estado", cat: "Ayuda", org: "Ministerio de Educación",
-    req: ["hijos", "discapacidad"], link: "https://www.becaseducacion.gob.es",
+    req: ["hijos", "discapacidad", "discapacidadQuien"], link: "https://www.becaseducacion.gob.es",
     docs: ["Certificado de discapacidad o informe del orientador del colegio", "Presupuesto del logopeda o del apoyo"],
     ev: (f) => f.nHijos === 0 ? no("No hay hijos a cargo") :
       f.discapacidad === "no" ? no("Hace falta discapacidad o necesidad educativa acreditada") :
-        si("Esta no mira lo que ganas. Cubre logopeda, reeducación y transporte, y muchísima gente no la pide") },
+        !f.disHijo ? no("Esta va por el alumno: la discapacidad que consta en casa es de otra persona") :
+          si("Esta no mira lo que ganas. Cubre logopeda, reeducación y transporte, y muchísima gente no la pide") },
 
   { id: "comedor", a: "Comedor escolar gratis o casi", n: "Ayudas de comedor escolar", amb: "Auton", cat: "Ayuda", org: "Tu comunidad",
     req: ["estudios", "ingresos", "hijos", "adultos", "comunidad"], plazoNota: "Se pide antes del verano. Si se te pasa, pierdes el curso entero",
@@ -473,8 +477,13 @@ function derivar(r) {
   const edades = hijos.map((h) => edadDe(h)).filter((e) => e != null);
   const adultos = Number(r.adultos) || 1;
   const est = Array.isArray(r.estudios) ? r.estudios : [];
+  const quienDis = Array.isArray(r.discapacidadQuien) ? r.discapacidadQuien : [];
   const f = {
     ...r,
+    disYo: quienDis.includes("yo"),
+    disHijo: quienDis.includes("hijo"),
+    disMayor: quienDis.includes("mayor"),
+    disPareja: quienDis.includes("pareja"),
     edad: r.nacimiento ? edadDe(r.nacimiento) : null,
     adultos, nHijos: hijos.length, edades,
     miembros: adultos + hijos.length,
@@ -492,23 +501,33 @@ function derivar(r) {
   return f;
 }
 const contestada = (r, id) => r[id] !== undefined && r[id] !== "";
+const POR_ID = Object.fromEntries(PREGUNTAS.map((p) => [p.id, p]));
+// Una pregunta que no aplica a tu caso (el alquiler si tienes casa propia) no debe
+// bloquear para siempre a la regla que la pedía: nunca te la van a preguntar.
+const aplicable = (id, f) => {
+  const p = POR_ID[id];
+  return !p || !p.cuando || p.cuando(f);
+};
 
 function evaluar(r) {
   const f = derivar(r);
   return D.map((d) => {
-    const faltan = d.req.filter((q) => !contestada(r, q));
+    const faltan = d.req.filter((q) => !contestada(r, q) && aplicable(q, f));
     if (faltan.length) return { ...d, estado: "desconocido", faltan };
     return { ...d, ...d.ev(f), faltan: [] };
   });
 }
 
-function siguiente(r, saltadas) {
+function siguiente(r, saltadas, ultima = null) {
   const f = derivar(r);
   const pend = evaluar(r).filter((x) => x.estado === "desconocido");
   const cand = PREGUNTAS.filter((p) => !contestada(r, p.id) && !saltadas.includes(p.id) && (!p.cuando || p.cuando(f)));
   if (!cand.length) return null;
   const s = cand.map((p) => ({ ...p, desbloquea: pend.filter((d) => d.req.includes(p.id)).length }));
-  s.sort((a, b) => b.desbloquea - a.desbloquea || (b.prioridad || 0) - (a.prioridad || 0));
+  // Cuántas ayudas desbloquea, más la prioridad de guion. Una pregunta marcada como
+  // continuación de otra salta al frente justo después de su pregunta madre.
+  const puntua = (p) => p.desbloquea + (p.prioridad || 0) + (p.tras && p.tras === ultima ? 500 : 0);
+  s.sort((a, b) => puntua(b) - puntua(a));
   return s[0];
 }
 
@@ -577,6 +596,7 @@ export default function LoQueTeToca() {
   const [eventos, setEventos] = useState([]);
   const [nuevoEvento, setNuevoEvento] = useState({ tipo: "nacimiento-hijo", fecha: "", nota: "" });
   const [emailGestion, setEmailGestion] = useState("");
+  const [ultimaId, setUltimaId] = useState(null);
 
   useEffect(() => {
     try {
@@ -596,7 +616,7 @@ export default function LoQueTeToca() {
     writeLocal({ r, nombre, saltadas, docs, gestion, eventos });
   }, [r, nombre, saltadas, docs, gestion, eventos, listo]);
 
-  const pregunta = useMemo(() => siguiente(r, saltadas), [r, saltadas]);
+  const pregunta = useMemo(() => siguiente(r, saltadas, ultimaId), [r, saltadas, ultimaId]);
   const res = useMemo(() => evaluar(r), [r]);
   const tuyas = res.filter((x) => x.estado === "corresponde");
   const mirar = res.filter((x) => x.estado === "posible");
@@ -623,6 +643,7 @@ export default function LoQueTeToca() {
       gan: desp.filter((d) => d.estado === "corresponde" && antes.find((a) => a.id === d.id)?.estado !== "corresponde").length,
       perd: desp.filter((d) => d.estado === "descartado" && antes.find((a) => a.id === d.id)?.estado !== "descartado").length,
     });
+    setUltimaId(pregunta.id);
     setR(nuevo); setBorrador(null);
   };
 
@@ -671,10 +692,16 @@ export default function LoQueTeToca() {
     </div>);
     if (p.tipo === "multi") {
       const sel = Array.isArray(borrador) ? borrador : [];
+      // "Nadie estudia" y equivalentes no pueden convivir con el resto de opciones.
+      const alternar = (v) => {
+        if (v === "ninguno") return setBorrador(sel.includes("ninguno") ? [] : ["ninguno"]);
+        const base = sel.filter((x) => x !== "ninguno");
+        setBorrador(base.includes(v) ? base.filter((x) => x !== v) : [...base, v]);
+      };
       return (<div>
         {p.opciones.map(([v, t]) => (
           <label key={v} style={{ display: "flex", gap: 10, alignItems: "center", padding: "9px 0", fontSize: 16, cursor: "pointer" }}>
-            <input type="checkbox" checked={sel.includes(v)} onChange={() => setBorrador(sel.includes(v) ? sel.filter((x) => x !== v) : [...sel, v])} />{t}
+            <input type="checkbox" checked={sel.includes(v)} onChange={() => alternar(v)} />{t}
           </label>))}
         <button style={{ ...btn(sel.length > 0), marginTop: 12 }} disabled={!sel.length} onClick={() => responder(sel)}>Siguiente</button>
       </div>);
