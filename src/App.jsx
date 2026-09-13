@@ -518,6 +518,18 @@ const btn = (on) => ({ padding: "13px 22px", border: "none", borderRadius: 10, b
 const btnSuave = { padding: "13px 22px", border: `1px solid ${C.borde}`, borderRadius: 10, background: C.tarjeta, color: C.tinta, font: `500 15.5px ${sans}`, cursor: "pointer", boxShadow: sombra };
 const link = { border: "none", background: "none", padding: 0, textDecoration: "underline", cursor: "pointer", font: `inherit` };
 
+function Marca({ tam = 30, onClick = null }) {
+  return (
+    <div onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 9, cursor: onClick ? "pointer" : "default" }}>
+      <svg width={tam} height={tam} viewBox="0 0 32 32" aria-hidden="true" style={{ flexShrink: 0, display: "block" }}>
+        <rect width="32" height="32" rx="8" fill={C.ciruela} />
+        <path d="M9 16.6l4.6 4.6L23 11.4" fill="none" stroke={C.fondo} strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span style={{ font: `500 ${Math.round(tam * 0.63)}px ${serif}`, color: C.ciruela, whiteSpace: "nowrap" }}>Lo que te toca</span>
+    </div>
+  );
+}
+
 function Etiqueta({ estado }) {
   const m = { corresponde: ["Esto es tuyo", C.salvia], posible: ["Míralo bien", C.miel], descartado: ["No es para ti", C.suave] }[estado];
   if (!m) return null;
@@ -746,6 +758,7 @@ export default function LoQueTeToca() {
   if (pantalla === "bienvenida") return (
     <div style={{ background: C.fondo, color: C.tinta, font: `16px/1.6 ${sans}`, minHeight: "100vh", display: "flex", alignItems: "center", padding: "40px 20px" }}>
       <div style={{ maxWidth: 520, margin: "0 auto" }}>
+        <div style={{ marginBottom: 30 }}><Marca tam={34} /></div>
         <h1 style={{ font: `500 34px/1.2 ${serif}`, margin: "0 0 18px" }}>Hay dinero público a tu nombre que nadie te va a reclamar.</h1>
 
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap", margin: "0 0 22px", padding: "16px 0", borderTop: `1px solid ${C.borde}`, borderBottom: `1px solid ${C.borde}` }}>
@@ -774,20 +787,24 @@ export default function LoQueTeToca() {
   return (
     <div style={{ background: C.fondo, color: C.tinta, font: `16px/1.6 ${sans}`, minHeight: "100vh", padding: "0 0 60px" }}>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px" }}>
-        <header style={{ paddingTop: 26, paddingBottom: 18, display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+        <div style={{ paddingTop: 22, paddingBottom: 16, borderBottom: `1px solid ${C.borde}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <Marca tam={28} onClick={() => setPantalla("bienvenida")} />
+          {total > 0 && <span style={{ fontSize: 13.5, color: C.miel }}>Llevas <strong style={{ fontWeight: 600 }}>{fmtE(total)}</strong> al año encontrados</span>}
+        </div>
+
+        <header style={{ paddingTop: 18, paddingBottom: 18, display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setPantalla("preguntas")} style={{ ...(pantalla === "preguntas" ? btn(true) : btnSuave), padding: "9px 16px", fontSize: 14.5 }}>Preguntas</button>
             <button onClick={() => setPantalla("vida")} style={{ ...(pantalla === "vida" ? btn(true) : btnSuave), padding: "9px 16px", fontSize: 14.5 }}>Mi vida{eventos.length ? ` · ${eventos.length}` : ""}</button>
             <button onClick={() => { track("ver_resultados", { tuyas: tuyas.length, mirar: mirar.length }); setPantalla("resultados"); }} style={{ ...(pantalla === "resultados" ? btn(true) : btnSuave), padding: "9px 16px", fontSize: 14.5 }}>Lo mío{tuyas.length ? ` · ${tuyas.length}` : ""}</button>
           </div>
-          {total > 0 && <span style={{ fontSize: 14, color: C.miel }}>Llevas <strong style={{ fontWeight: 600 }}>{fmtE(total)}</strong> al año encontrados</span>}
         </header>
 
         {pantalla === "preguntas" && (
           <div>
             {pregunta && (() => {
               const totalBarra = Math.max(totalAplicables, contestadas + 1);
-              const pct = Math.min(100, Math.round((contestadas / totalBarra) * 100));
+              const pct = Math.max(4, Math.min(100, Math.round((contestadas / totalBarra) * 100)));
               return (
                 <div style={{ margin: "0 0 14px" }}>
                   <div style={{ height: 6, background: C.hondo, borderRadius: 4, overflow: "hidden" }}>
@@ -940,8 +957,11 @@ export default function LoQueTeToca() {
           </div>
         )}
 
-        <footer style={{ marginTop: 46, paddingTop: 18, borderTop: `1px solid ${C.borde}`, fontSize: 13, color: C.suave }}>
-          Esto es un prototipo con datos de ejemplo. Antes de fiarte de una cifra, contrástala con la convocatoria oficial. Nada de lo que escribes sale de tu dispositivo.
+        <footer style={{ marginTop: 46, paddingTop: 22, borderTop: `1px solid ${C.borde}`, fontSize: 13, color: C.suave, lineHeight: 1.7 }}>
+          <div style={{ marginBottom: 12 }}><Marca tam={24} onClick={() => setPantalla("bienvenida")} /></div>
+          <p style={{ margin: "0 0 6px" }}>Tus respuestas se guardan solo en este dispositivo. No viajan a ningún servidor ni las vemos nosotros.</p>
+          <p style={{ margin: "0 0 6px" }}>Proyecto independiente: no somos un organismo público ni una asesoría. Los datos son de demostración, así que contrasta cualquier cifra con la convocatoria oficial antes de fiarte de ella.</p>
+          <p style={{ margin: 0 }}>¿Dudas o algo mal? <a href="mailto:polazarock@gmail.com" style={{ color: C.ciruela }}>Escríbenos</a>.</p>
         </footer>
       </div>
     </div>
