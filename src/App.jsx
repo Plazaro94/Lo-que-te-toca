@@ -514,7 +514,7 @@ function siguiente(r, saltadas) {
 
 const sombra = "0 1px 2px rgba(42,32,40,0.04), 0 4px 14px rgba(42,32,40,0.06)";
 const inputBase = { width: "100%", padding: "13px 14px", border: `1px solid ${C.borde}`, borderRadius: 10, background: C.tarjeta, font: `16px ${sans}`, color: C.tinta, boxSizing: "border-box" };
-const btn = (on) => ({ padding: "13px 22px", border: "none", borderRadius: 10, background: on ? C.ciruela : C.hondo, color: on ? "#fff" : C.suave, font: `500 15.5px ${sans}`, cursor: on ? "pointer" : "default", boxShadow: on ? "0 2px 8px rgba(110,61,91,0.28)" : "none" };
+const btn = (on) => ({ padding: "13px 22px", border: "none", borderRadius: 10, background: on ? C.ciruela : C.hondo, color: on ? "#fff" : C.suave, font: `500 15.5px ${sans}`, cursor: on ? "pointer" : "default", boxShadow: on ? "0 2px 8px rgba(110,61,91,0.28)" : "none" });
 const btnSuave = { padding: "13px 22px", border: `1px solid ${C.borde}`, borderRadius: 10, background: C.tarjeta, color: C.tinta, font: `500 15.5px ${sans}`, cursor: "pointer", boxShadow: sombra };
 const link = { border: "none", background: "none", padding: 0, textDecoration: "underline", cursor: "pointer", font: `inherit` };
 
